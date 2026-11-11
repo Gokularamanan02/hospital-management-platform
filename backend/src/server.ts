@@ -18,28 +18,70 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// Allowed CORS origins
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3333',
+  'https://hospital-management-platform-rho.vercel.app',
+  process.env.CORS_ORIGIN,
+  process.env.FRONTEND_URL,
+].filter(Boolean) as string[];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      process.env.NODE_ENV !== 'production'
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
 app.use(express.json());
 
-// Resilient MongoDB connection with fast timeout fallback
-const mongoUri = process.env.MONGO_URI;
-if (mongoUri) {
-  mongoose
-    .connect(mongoUri, { serverSelectionTimeoutMS: 4000 })
-    .then(async () => {
-      console.log("✓ Connected to MongoDB Atlas successfully");
-      setMongoReady(true);
-      await seedMongoIfEmpty();
-    })
-    .catch((error) => {
-      console.warn("⚠ MongoDB connection notice: Could not reach Atlas cluster (IP whitelist required or network blocked).");
-      console.warn("✓ Dual-Mode Repository activated: Serving seamless in-memory database with pre-seeded hospital data.");
-      setMongoReady(false);
-    });
-} else {
-  console.log("ℹ No MONGO_URI provided. Running in high-performance in-memory repository mode.");
-  setMongoReady(false);
+// Resilient MongoDB connection with fast timeout fallback (cached for serverless)
+let isConnecting = false;
+export async function connectToMongo(): Promise<void> {
+  if (mongoose.connection.readyState >= 1) return;
+  if (isConnecting) return;
+  const mongoUri = process.env.MONGO_URI;
+  if (!mongoUri) {
+    setMongoReady(false);
+    return;
+  }
+  isConnecting = true;
+  try {
+    await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 4000 });
+    console.log("✓ Connected to MongoDB Atlas successfully");
+    setMongoReady(true);
+    await seedMongoIfEmpty();
+  } catch (error) {
+    console.warn("⚠ MongoDB connection notice: Could not reach Atlas cluster (IP whitelist required or network blocked).");
+    console.warn("✓ Dual-Mode Repository activated: Serving seamless in-memory database with pre-seeded hospital data.");
+    setMongoReady(false);
+  } finally {
+    isConnecting = false;
+  }
 }
+
+// Initial connection attempt on cold start
+connectToMongo().catch(() => {});
+
+// Middleware to ensure database connection before processing requests
+app.use(async (_req, _res, next) => {
+  if (mongoose.connection.readyState === 0 && process.env.MONGO_URI) {
+    await connectToMongo().catch(() => {});
+  }
+  next();
+});
 
 // Mount all modular routes
 app.use("/api/auth", authRoutes);
@@ -91,9 +133,13 @@ app.get("/", (_req, res) => {
   res.send("AI Hospital Intelligence API is running with full dual-mode support.");
 });
 
-const server = app.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+// Start HTTP listener only when not running in serverless / test mode
+let server: any;
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
+  server = app.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
 
 export { app, server };
 export default app;

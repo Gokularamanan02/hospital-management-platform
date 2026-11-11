@@ -8,9 +8,9 @@
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "build:backend": "npm --prefix backend run build",
-    "build:frontend": "npm --prefix frontend install && npm --prefix frontend run build",
-    "build": "npm run build:frontend",
-    "build:all": "npm run build:backend && npm run build:frontend",
+    "build:frontend": "npm --prefix frontend run build",
+    "build": "npm run build:backend && npm run build:frontend && node -e \"const fs=require('fs'); fs.cpSync('frontend/dist', 'dist', {recursive:true});\"",
+    "build:all": "npm run build:backend && npm run build:frontend && node -e \"const fs=require('fs'); fs.cpSync('frontend/dist', 'dist', {recursive:true});\"",
     "start": "npm --prefix backend run start",
     "test": "node test-all-modules.js"
   },
