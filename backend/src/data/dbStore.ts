@@ -144,7 +144,7 @@ export const patientsStore = {
   },
 
   async getById(id: string): Promise<PatientData | null> {
-    if (getMongoReady()) {
+    if (getMongoReady() && mongoose.Types.ObjectId.isValid(id)) {
       try {
         const p: any = await Patient.findById(id);
         if (p) {
@@ -203,9 +203,9 @@ export const patientsStore = {
   },
 
   async update(id: string, updates: Partial<PatientData>): Promise<PatientData | null> {
-    if (getMongoReady()) {
+    if (getMongoReady() && mongoose.Types.ObjectId.isValid(id)) {
       try {
-        const updated: any = await Patient.findByIdAndUpdate(id, updates, { new: true });
+        const updated: any = await Patient.findByIdAndUpdate(id, updates, { returnDocument: 'after' });
         if (updated) {
           return {
             id: updated._id.toString(),
@@ -233,7 +233,7 @@ export const patientsStore = {
   },
 
   async delete(id: string): Promise<boolean> {
-    if (getMongoReady()) {
+    if (getMongoReady() && mongoose.Types.ObjectId.isValid(id)) {
       try {
         await Patient.findByIdAndDelete(id);
       } catch (err) {
@@ -302,7 +302,7 @@ export const doctorsStore = {
     return newDoc;
   },
   async update(id: string, updates: Partial<DoctorData>): Promise<DoctorData | null> {
-    if (getMongoReady()) {
+    if (getMongoReady() && mongoose.Types.ObjectId.isValid(id)) {
       try {
         await Doctor.findByIdAndUpdate(id, updates);
       } catch (err) {
@@ -317,7 +317,7 @@ export const doctorsStore = {
     return null;
   },
   async delete(id: string): Promise<boolean> {
-    if (getMongoReady()) {
+    if (getMongoReady() && mongoose.Types.ObjectId.isValid(id)) {
       try {
         await Doctor.findByIdAndDelete(id);
       } catch (err) {
@@ -385,7 +385,7 @@ export const appointmentsStore = {
     return newAppt;
   },
   async update(id: string, updates: Partial<AppointmentData>): Promise<AppointmentData | null> {
-    if (getMongoReady()) {
+    if (getMongoReady() && mongoose.Types.ObjectId.isValid(id)) {
       try {
         await Appointment.findByIdAndUpdate(id, updates);
       } catch (err) {
@@ -400,7 +400,7 @@ export const appointmentsStore = {
     return null;
   },
   async delete(id: string): Promise<boolean> {
-    if (getMongoReady()) {
+    if (getMongoReady() && mongoose.Types.ObjectId.isValid(id)) {
       try {
         await Appointment.findByIdAndDelete(id);
       } catch (err) {
@@ -437,13 +437,13 @@ export const bedsStore = {
     return inMemoryStore.beds;
   },
   async updateStatus(id: string, status: BedData['status'], patientId?: string, patientName?: string): Promise<BedData | null> {
-    if (getMongoReady()) {
+    if (getMongoReady() && mongoose.Types.ObjectId.isValid(id)) {
       try {
         const updated: any = await Bed.findByIdAndUpdate(id, {
           status,
           patientId: status === 'Occupied' ? patientId : undefined,
           patientName: status === 'Occupied' ? patientName : undefined
-        }, { new: true });
+        }, { returnDocument: 'after' });
         if (updated) {
           return {
             id: updated._id.toString(),

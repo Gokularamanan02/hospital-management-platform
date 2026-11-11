@@ -91,7 +91,7 @@ app.get("/", (_req, res) => {
   res.send("AI Hospital Intelligence API is running with full dual-mode support.");
 });
 
-const server = app.listen(PORT, () => {
+const server = app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
 
