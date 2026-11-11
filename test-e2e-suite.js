@@ -1,5 +1,5 @@
 const API_BASE = 'http://localhost:5000/api';
-const FRONTEND_BASE = 'http://localhost:5173';
+const FRONTEND_BASE = 'http://localhost:3000';
 
 async function runTests() {
   console.log('========================================================================');
