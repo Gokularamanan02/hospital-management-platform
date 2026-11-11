@@ -98,6 +98,8 @@ export const AIAssistantPage = () => {
     { label: 'Check ICU Ward Beds', query: 'How many ICU and emergency beds are available right now?', icon: <Bed size={13} /> },
     { label: 'Specialists On Duty', query: 'Which doctors and surgeons are currently available on duty?', icon: <Stethoscope size={13} /> },
     { label: 'Patient Priya Narayanan', query: 'What is Priya Narayanan diagnosis and treatment plan?', icon: <Users size={13} /> },
+    { label: 'Emergency Hotline & Hours', query: 'What is the hospital emergency hotline and visiting hours?', icon: <Sparkles size={13} /> },
+    { label: 'Cardiology Specialists', query: 'Tell me about the Cardiology Department and available cardiologists', icon: <Stethoscope size={13} /> }
   ];
 
   return (

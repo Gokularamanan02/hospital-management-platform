@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import { setMongoReady } from "./data/dbStore.js";
+import { setMongoReady, seedMongoIfEmpty } from "./data/dbStore.js";
 import patientRoutes from "./routes/patient.routes.js";
 import doctorRoutes from "./routes/doctor.routes.js";
 import appointmentRoutes from "./routes/appointment.routes.js";
@@ -26,9 +26,10 @@ const mongoUri = process.env.MONGO_URI;
 if (mongoUri) {
   mongoose
     .connect(mongoUri, { serverSelectionTimeoutMS: 4000 })
-    .then(() => {
+    .then(async () => {
       console.log("✓ Connected to MongoDB Atlas successfully");
       setMongoReady(true);
+      await seedMongoIfEmpty();
     })
     .catch((error) => {
       console.warn("⚠ MongoDB connection notice: Could not reach Atlas cluster (IP whitelist required or network blocked).");

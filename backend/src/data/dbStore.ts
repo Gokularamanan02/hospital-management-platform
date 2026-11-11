@@ -33,13 +33,20 @@ export function getMongoReady(): boolean {
   return isMongoReady && mongoose.connection.readyState === 1;
 }
 
-// Auto-seed MongoDB Atlas if fresh
+// Auto-seed MongoDB Atlas if fresh (verifies every collection independently)
 export async function seedMongoIfEmpty() {
   if (!getMongoReady()) return;
   try {
-    const patientCount = await Patient.countDocuments();
+    const [patientCount, doctorCount, appointmentCount, bedCount, departmentCount, recordCount] = await Promise.all([
+      Patient.countDocuments(),
+      Doctor.countDocuments(),
+      Appointment.countDocuments(),
+      Bed.countDocuments(),
+      Department.countDocuments(),
+      MedicalRecord.countDocuments()
+    ]);
+
     if (patientCount === 0) {
-      console.log('🌱 Fresh MongoDB Atlas detected! Seeding initial hospital database collections...');
       await Patient.insertMany(initialPatients.map(p => ({
         _id: new mongoose.Types.ObjectId(),
         name: p.name,
@@ -52,6 +59,10 @@ export async function seedMongoIfEmpty() {
         ward: p.ward,
         bedNumber: p.bedNumber
       })));
+      console.log('✓ Seeded Patients into MongoDB Atlas');
+    }
+
+    if (doctorCount === 0) {
       await Doctor.insertMany(initialDoctors.map(d => ({
         name: d.name,
         specialization: d.specialization,
@@ -61,14 +72,30 @@ export async function seedMongoIfEmpty() {
         email: d.email,
         department: d.department
       })));
-      await Appointment.insertMany(initialAppointments);
-      await Bed.insertMany(initialBeds);
-      await Department.insertMany(initialDepartments);
-      await MedicalRecord.insertMany(initialMedicalRecords);
-      console.log('✓ Successfully seeded Patients, Doctors, Appointments, Beds, Departments & Records into MongoDB Atlas!');
-    } else {
-      console.log(`ℹ MongoDB Atlas already populated (${patientCount} patient records found).`);
+      console.log('✓ Seeded Doctors into MongoDB Atlas');
     }
+
+    if (appointmentCount === 0) {
+      await Appointment.insertMany(initialAppointments);
+      console.log('✓ Seeded Appointments into MongoDB Atlas');
+    }
+
+    if (bedCount === 0) {
+      await Bed.insertMany(initialBeds);
+      console.log('✓ Seeded Beds into MongoDB Atlas');
+    }
+
+    if (departmentCount === 0) {
+      await Department.insertMany(initialDepartments);
+      console.log('✓ Seeded Departments into MongoDB Atlas');
+    }
+
+    if (recordCount === 0) {
+      await MedicalRecord.insertMany(initialMedicalRecords);
+      console.log('✓ Seeded Medical Records into MongoDB Atlas');
+    }
+
+    console.log(`✓ Atlas Collections sync verified: Patients(${patientCount || initialPatients.length}), Doctors(${doctorCount || initialDoctors.length}), Appointments(${appointmentCount || initialAppointments.length}), Beds(${bedCount || initialBeds.length}), Departments(${departmentCount || initialDepartments.length}), Records(${recordCount || initialMedicalRecords.length})`);
   } catch (err) {
     console.error('Failed to seed MongoDB Atlas:', err);
   }
