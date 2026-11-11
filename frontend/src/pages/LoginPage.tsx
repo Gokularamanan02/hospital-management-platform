@@ -64,7 +64,7 @@ export const LoginPage = () => {
       }}>
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
           <Paper elevation={0} sx={{ 
-            p: { xs: 4, md: 5 }, 
+            p: { xs: 3, sm: 4, md: 5 }, 
             borderRadius: 4, 
             maxWidth: 440, 
             width: '100%', 
@@ -73,7 +73,7 @@ export const LoginPage = () => {
             backdropFilter: 'blur(20px)',
             boxShadow: '0 20px 40px rgba(0,0,0,0.06)'
           }}>
-            <Typography variant="h3" color="primary.main" sx={{ fontWeight: 800 }} gutterBottom>
+            <Typography variant="h3" color="primary.main" sx={{ fontWeight: 800, fontSize: { xs: '2.2rem', sm: '3rem' } }} gutterBottom>
               {APP_NAME}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>

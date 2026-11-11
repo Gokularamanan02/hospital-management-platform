@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Box, Typography, Grid, Card, CardContent, Chip, Button, Dialog,
   DialogTitle, DialogContent, DialogActions, MenuItem, TextField,
-  CircularProgress, Tabs, Tab
+  CircularProgress, Tabs, Tab, useTheme, useMediaQuery
 } from '@mui/material';
 import { CheckCircle2, AlertTriangle, User, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -11,6 +11,8 @@ import { bedService } from '../services/bed.service';
 import { patientService } from '../services/patient.service';
 
 export const BedsPage = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [beds, setBeds] = useState<Bed[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -223,7 +225,7 @@ export const BedsPage = () => {
         )}
 
         {/* Bed Status & Patient Assignment Dialog */}
-        <Dialog open={openStatusDialog} onClose={() => setOpenStatusDialog(false)} maxWidth="xs" fullWidth>
+        <Dialog open={openStatusDialog} onClose={() => setOpenStatusDialog(false)} maxWidth="xs" fullWidth fullScreen={isMobile}>
           <DialogTitle sx={{ fontWeight: 700 }}>
             Manage Bed: {selectedBed?.bedNumber} ({selectedBed?.ward})
           </DialogTitle>

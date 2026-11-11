@@ -12,10 +12,14 @@ router.get('/', async (_req, res) => {
   }
 });
 
-router.get('/:id', (req, res) => {
-  const doc = doctorsStore.getById(req.params.id);
-  if (!doc) return res.status(404).json({ message: 'Doctor not found' });
-  res.json(doc);
+router.get('/:id', async (req, res) => {
+  try {
+    const doc = await doctorsStore.getById(req.params.id);
+    if (!doc) return res.status(404).json({ message: 'Doctor not found' });
+    res.json(doc);
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving doctor', error });
+  }
 });
 
 router.post('/', async (req, res) => {

@@ -205,7 +205,12 @@ export const patientsStore = {
   async update(id: string, updates: Partial<PatientData>): Promise<PatientData | null> {
     if (getMongoReady() && mongoose.Types.ObjectId.isValid(id)) {
       try {
-        const updated: any = await Patient.findByIdAndUpdate(id, updates, { returnDocument: 'after' });
+        const updateDoc: any = { ...updates };
+        if (updates.bedNumber === undefined && 'bedNumber' in updates) {
+          delete updateDoc.bedNumber;
+          updateDoc.$unset = { ...(updateDoc.$unset || {}), bedNumber: 1, ward: 1 };
+        }
+        const updated: any = await Patient.findByIdAndUpdate(id, updateDoc, { returnDocument: 'after' });
         if (updated) {
           return {
             id: updated._id.toString(),
@@ -270,7 +275,26 @@ export const doctorsStore = {
     }
     return inMemoryStore.doctors;
   },
-  getById(id: string): DoctorData | null {
+  async getById(id: string): Promise<DoctorData | null> {
+    if (getMongoReady() && mongoose.Types.ObjectId.isValid(id)) {
+      try {
+        const d: any = await Doctor.findById(id);
+        if (d) {
+          return {
+            id: d._id.toString(),
+            name: d.name,
+            specialization: d.specialization,
+            experienceYears: d.experienceYears,
+            availability: d.availability,
+            contact: d.contact,
+            email: d.email,
+            department: d.department
+          };
+        }
+      } catch (err) {
+        console.warn('MongoDB doctor getById failed:', err);
+      }
+    }
     return inMemoryStore.doctors.find(d => d.id === id) || null;
   },
   async create(data: Omit<DoctorData, 'id'>): Promise<DoctorData> {
@@ -439,11 +463,14 @@ export const bedsStore = {
   async updateStatus(id: string, status: BedData['status'], patientId?: string, patientName?: string): Promise<BedData | null> {
     if (getMongoReady() && mongoose.Types.ObjectId.isValid(id)) {
       try {
-        const updated: any = await Bed.findByIdAndUpdate(id, {
-          status,
-          patientId: status === 'Occupied' ? patientId : undefined,
-          patientName: status === 'Occupied' ? patientName : undefined
-        }, { returnDocument: 'after' });
+        const updateDoc: any = { status };
+        if (status === 'Occupied') {
+          updateDoc.patientId = patientId;
+          updateDoc.patientName = patientName;
+        } else {
+          updateDoc.$unset = { patientId: 1, patientName: 1 };
+        }
+        const updated: any = await Bed.findByIdAndUpdate(id, updateDoc, { returnDocument: 'after' });
         if (updated) {
           return {
             id: updated._id.toString(),
@@ -546,6 +573,33 @@ export const departmentsStore = {
     };
     inMemoryStore.departments.push(newDept);
     return newDept;
+  },
+  async update(id: string, updates: Partial<DepartmentData>): Promise<DepartmentData | null> {
+    if (getMongoReady() && mongoose.Types.ObjectId.isValid(id)) {
+      try {
+        await Department.findByIdAndUpdate(id, updates);
+      } catch (err) {
+        console.warn('MongoDB department update failed:', err);
+      }
+    }
+    const target = inMemoryStore.departments.find(d => d.id === id);
+    if (target) {
+      Object.assign(target, updates, { id: target.id });
+      return target;
+    }
+    return null;
+  },
+  async delete(id: string): Promise<boolean> {
+    if (getMongoReady() && mongoose.Types.ObjectId.isValid(id)) {
+      try {
+        await Department.findByIdAndDelete(id);
+      } catch (err) {
+        console.warn('MongoDB department delete failed:', err);
+      }
+    }
+    const len = inMemoryStore.departments.length;
+    inMemoryStore.departments = inMemoryStore.departments.filter(d => d.id !== id);
+    return inMemoryStore.departments.length < len;
   }
 };
 
@@ -574,8 +628,40 @@ export const medicalRecordsStore = {
     }
     return inMemoryStore.medicalRecords;
   },
-  getByPatient(patientId: string): MedicalRecordData[] {
+  async getByPatient(patientId: string): Promise<MedicalRecordData[]> {
+    if (getMongoReady()) {
+      try {
+        const recs = await MedicalRecord.find({ patientId }).sort({ createdAt: -1 });
+        if (recs.length > 0) {
+          return recs.map((m: any) => ({
+            id: m._id.toString(),
+            patientId: m.patientId,
+            patientName: m.patientName,
+            date: m.date,
+            diagnosis: m.diagnosis,
+            prescription: m.prescription,
+            notes: m.notes,
+            doctorId: m.doctorId,
+            doctorName: m.doctorName
+          }));
+        }
+      } catch (err) {
+        console.warn('MongoDB record getByPatient failed:', err);
+      }
+    }
     return inMemoryStore.medicalRecords.filter(m => m.patientId === patientId);
+  },
+  async delete(id: string): Promise<boolean> {
+    if (getMongoReady() && mongoose.Types.ObjectId.isValid(id)) {
+      try {
+        await MedicalRecord.findByIdAndDelete(id);
+      } catch (err) {
+        console.warn('MongoDB record delete failed:', err);
+      }
+    }
+    const len = inMemoryStore.medicalRecords.length;
+    inMemoryStore.medicalRecords = inMemoryStore.medicalRecords.filter(m => m.id !== id);
+    return inMemoryStore.medicalRecords.length < len;
   },
   async create(data: Omit<MedicalRecordData, 'id'>): Promise<MedicalRecordData> {
     if (getMongoReady()) {

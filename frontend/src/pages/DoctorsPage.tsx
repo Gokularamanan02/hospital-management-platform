@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Box, Typography, Grid, Card, CardContent, Chip, Button, TextField,
   Dialog, DialogTitle, DialogContent, DialogActions, MenuItem,
-  CircularProgress, Avatar, InputAdornment, IconButton
+  CircularProgress, Avatar, InputAdornment, IconButton, useTheme, useMediaQuery
 } from '@mui/material';
 import { Plus, Search, UserRound, Phone, Mail, Stethoscope, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -10,6 +10,8 @@ import type { Doctor } from '../types';
 import { doctorService } from '../services/doctor.service';
 
 export const DoctorsPage = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -216,7 +218,7 @@ export const DoctorsPage = () => {
         )}
 
         {/* Add Doctor Dialog */}
-        <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} maxWidth="sm" fullWidth>
+        <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
           <DialogTitle sx={{ fontWeight: 700 }}>Add New Medical Specialist</DialogTitle>
           <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
             <TextField

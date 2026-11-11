@@ -12,8 +12,13 @@ router.get('/', async (_req, res) => {
   }
 });
 
-router.get('/patient/:patientId', (req, res) => {
-  res.json(medicalRecordsStore.getByPatient(req.params.patientId));
+router.get('/patient/:patientId', async (req, res) => {
+  try {
+    const recs = await medicalRecordsStore.getByPatient(req.params.patientId);
+    res.json(recs);
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving patient records', error });
+  }
 });
 
 router.post('/', async (req, res) => {
@@ -23,7 +28,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Missing record fields' });
     }
     const patient = await patientsStore.getById(patientId);
-    const doctor = doctorsStore.getById(doctorId);
+    const doctor = await doctorsStore.getById(doctorId);
 
     const record = await medicalRecordsStore.create({
       patientId,
@@ -38,6 +43,16 @@ router.post('/', async (req, res) => {
     res.status(201).json(record);
   } catch (error) {
     res.status(400).json({ message: 'Error adding medical record', error });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  try {
+    const deleted = await medicalRecordsStore.delete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Record not found' });
+    res.json({ message: 'Medical record deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting record', error });
   }
 });
 

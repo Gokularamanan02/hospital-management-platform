@@ -32,5 +32,25 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.put('/:id', async (req, res) => {
+  try {
+    const updated = await departmentsStore.update(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ message: 'Department not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ message: 'Error updating department', error });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  try {
+    const deleted = await departmentsStore.delete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Department not found' });
+    res.json({ message: 'Department removed successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting department', error });
+  }
+});
+
 export default router;
 

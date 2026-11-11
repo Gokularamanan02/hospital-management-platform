@@ -3,7 +3,7 @@ import {
   Box, Typography, Paper, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Chip, Button, CircularProgress, TextField,
   Dialog, DialogTitle, DialogContent, DialogActions, MenuItem,
-  IconButton, InputAdornment, Card, CardContent, Grid
+  IconButton, InputAdornment, Card, CardContent, Grid, useTheme, useMediaQuery
 } from '@mui/material';
 import { Plus, Search, Edit2, Trash2, User, Phone, Droplet } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -11,6 +11,8 @@ import type { Patient } from '../types';
 import { patientService } from '../services/patient.service';
 
 export const PatientsPage = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -215,85 +217,141 @@ export const PatientsPage = () => {
           </Box>
         </Box>
 
-        {/* Patients Table */}
-        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
-          {loading ? (
-            <Box sx={{ p: 6, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box>
-          ) : filteredPatients.length === 0 ? (
-            <Box sx={{ p: 6, textAlign: 'center' }}>
-              <User size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
-              <Typography variant="h6" color="text.secondary">No patients found</Typography>
-              <Typography variant="body2" color="text.secondary">Register a patient to begin record keeping.</Typography>
-            </Box>
-          ) : (
-            <Table>
-              <TableHead sx={{ bgcolor: 'background.default' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Record ID</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Patient Name</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Demographics</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Blood Group</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Contact Info</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredPatients.map(row => (
-                  <TableRow key={row.id} hover>
-                    <TableCell sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.85rem' }}>
-                      {row.id.substring(0, 8)}...
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>{row.name}</TableCell>
-                    <TableCell>{row.age} yrs / {row.gender}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={row.bloodGroup}
-                        size="small"
-                        icon={<Droplet size={12} />}
-                        variant="outlined"
-                        sx={{ fontWeight: 700 }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, color: 'text.secondary' }}>
-                        <Phone size={13} />
-                        <Typography variant="body2">{row.contact}</Typography>
+        {/* Patients Content */}
+        {loading ? (
+          <Box sx={{ p: 6, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box>
+        ) : filteredPatients.length === 0 ? (
+          <Box sx={{ p: 6, textAlign: 'center', bgcolor: 'background.paper', borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+            <User size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
+            <Typography variant="h6" color="text.secondary">No patients found</Typography>
+            <Typography variant="body2" color="text.secondary">Register a patient to begin record keeping.</Typography>
+          </Box>
+        ) : (
+          <>
+            {/* Mobile Cards (xs to md) */}
+            <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', gap: 2 }}>
+              {filteredPatients.map(row => (
+                <Card key={row.id} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
+                  <CardContent sx={{ p: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>{row.name}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {row.age} yrs • {row.gender} • ID: {row.id.substring(0, 6)}...
+                        </Typography>
                       </Box>
-                    </TableCell>
-                    <TableCell>
                       <Chip
                         label={row.status}
                         size="small"
                         color={row.status === 'Admitted' ? 'error' : row.status === 'Outpatient' ? 'info' : 'success'}
+                        sx={{ fontWeight: 700 }}
+                      />
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, my: 1.5, flexWrap: 'wrap' }}>
+                      <Chip
+                        label={`Blood: ${row.bloodGroup}`}
+                        size="small"
+                        icon={<Droplet size={12} />}
                         variant="outlined"
                         sx={{ fontWeight: 600 }}
                       />
                       {row.ward && (
-                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
-                          {row.ward} ({row.bedNumber})
-                        </Typography>
+                        <Chip
+                          label={`${row.ward} (${row.bedNumber})`}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          sx={{ fontWeight: 600 }}
+                        />
                       )}
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'right' }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-                        <IconButton size="small" onClick={() => handleOpenEdit(row)} color="primary">
-                          <Edit2 size={16} />
-                        </IconButton>
-                        <IconButton size="small" onClick={() => handleDelete(row.id)} color="error">
-                          <Trash2 size={16} />
-                        </IconButton>
-                      </Box>
-                    </TableCell>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1.5 }}>
+                      <Phone size={13} /> {row.contact}
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+                      <Button size="small" variant="outlined" startIcon={<Edit2 size={14} />} onClick={() => handleOpenEdit(row)}>
+                        Edit
+                      </Button>
+                      <Button size="small" color="error" variant="outlined" startIcon={<Trash2 size={14} />} onClick={() => handleDelete(row.id)}>
+                        Delete
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+
+            {/* Desktop & Tablet Table (md and up) */}
+            <TableContainer component={Paper} elevation={0} sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid', borderColor: 'divider', borderRadius: 3, overflowX: 'auto' }}>
+              <Table>
+                <TableHead sx={{ bgcolor: 'background.default' }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Record ID</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Patient Name</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Demographics</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Blood Group</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Contact Info</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Actions</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {filteredPatients.map(row => (
+                    <TableRow key={row.id} hover>
+                      <TableCell sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.85rem' }}>
+                        {row.id.substring(0, 8)}...
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{row.name}</TableCell>
+                      <TableCell>{row.age} yrs / {row.gender}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={row.bloodGroup}
+                          size="small"
+                          icon={<Droplet size={12} />}
+                          variant="outlined"
+                          sx={{ fontWeight: 700 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, color: 'text.secondary' }}>
+                          <Phone size={13} />
+                          <Typography variant="body2">{row.contact}</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={row.status}
+                          size="small"
+                          color={row.status === 'Admitted' ? 'error' : row.status === 'Outpatient' ? 'info' : 'success'}
+                          variant="outlined"
+                          sx={{ fontWeight: 600 }}
+                        />
+                        {row.ward && (
+                          <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
+                            {row.ward} ({row.bedNumber})
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ textAlign: 'right' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                          <IconButton size="small" onClick={() => handleOpenEdit(row)} color="primary">
+                            <Edit2 size={16} />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => handleDelete(row.id)} color="error">
+                            <Trash2 size={16} />
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </>
+        )}
 
         {/* Register / Edit Patient Dialog */}
-        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
           <DialogTitle sx={{ fontWeight: 700 }}>
             {editingPatientId ? 'Update Patient Record' : 'Register New Patient'}
           </DialogTitle>

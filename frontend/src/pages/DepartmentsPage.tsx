@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Box, Typography, Grid, Card, CardContent, Button, Dialog,
   DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
-  CircularProgress, LinearProgress, Avatar
+  CircularProgress, LinearProgress, Avatar, useTheme, useMediaQuery
 } from '@mui/material';
 import { Building2, Plus, UserRound, BedDouble } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -11,6 +11,8 @@ import { departmentService } from '../services/department.service';
 import { doctorService } from '../services/doctor.service';
 
 export const DepartmentsPage = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [departments, setDepartments] = useState<Department[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,7 +161,7 @@ export const DepartmentsPage = () => {
         )}
 
         {/* Add Department Dialog */}
-        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
           <DialogTitle sx={{ fontWeight: 700 }}>Register New Clinical Department</DialogTitle>
           <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
             <TextField

@@ -3,7 +3,7 @@ import {
   Box, Typography, Paper, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Chip, Button, TextField, Dialog, DialogTitle,
   DialogContent, DialogActions, MenuItem, CircularProgress, IconButton,
-  InputAdornment, Card, CardContent, Grid
+  InputAdornment, Card, CardContent, Grid, useTheme, useMediaQuery
 } from '@mui/material';
 import { Plus, Search, Calendar, Clock, User, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -13,6 +13,8 @@ import { doctorService } from '../services/doctor.service';
 import { patientService } from '../services/patient.service';
 
 export const AppointmentsPage = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -189,52 +191,31 @@ export const AppointmentsPage = () => {
           </Box>
         </Box>
 
-        {/* Appointments Table */}
-        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
-          {loading ? (
-            <Box sx={{ p: 6, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box>
-          ) : filteredAppointments.length === 0 ? (
-            <Box sx={{ p: 6, textAlign: 'center' }}>
-              <Calendar size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
-              <Typography variant="h6" color="text.secondary">No appointments found</Typography>
-              <Typography variant="body2" color="text.secondary">Schedule a visit to begin tracking consultations.</Typography>
-            </Box>
-          ) : (
-            <Table>
-              <TableHead sx={{ bgcolor: 'background.default' }}>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Patient</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Consulting Doctor</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Date & Time</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Purpose</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredAppointments.map(appt => (
-                  <TableRow key={appt.id} hover>
-                    <TableCell sx={{ fontWeight: 600 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <User size={16} />
-                        {appt.patientName || appt.patientId}
-                      </Box>
-                    </TableCell>
-                    <TableCell>{appt.doctorName || appt.doctorId}</TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <Calendar size={13} /> {appt.date}
+        {/* Appointments Content */}
+        {loading ? (
+          <Box sx={{ p: 6, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box>
+        ) : filteredAppointments.length === 0 ? (
+          <Box sx={{ p: 6, textAlign: 'center', bgcolor: 'background.paper', borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+            <Calendar size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
+            <Typography variant="h6" color="text.secondary">No appointments found</Typography>
+            <Typography variant="body2" color="text.secondary">Schedule a visit to begin tracking consultations.</Typography>
+          </Box>
+        ) : (
+          <>
+            {/* Mobile Cards (xs to md) */}
+            <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', gap: 2 }}>
+              {filteredAppointments.map(appt => (
+                <Card key={appt.id} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
+                  <CardContent sx={{ p: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                          {appt.patientName || appt.patientId}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <Clock size={12} /> {appt.time}
+                        <Typography variant="caption" color="text.secondary">
+                          Dr. {appt.doctorName || appt.doctorId}
                         </Typography>
                       </Box>
-                    </TableCell>
-                    <TableCell sx={{ maxWidth: 220 }}>
-                      <Typography variant="body2" noWrap>{appt.reason}</Typography>
-                    </TableCell>
-                    <TableCell>
                       <Chip
                         label={appt.status}
                         size="small"
@@ -243,51 +224,160 @@ export const AppointmentsPage = () => {
                           appt.status === 'Scheduled' ? 'primary' :
                           'error'
                         }
+                        sx={{ fontWeight: 700 }}
+                      />
+                    </Box>
+
+                    <Box sx={{ display: 'flex', gap: 1.5, my: 1, flexWrap: 'wrap' }}>
+                      <Chip
+                        icon={<Calendar size={13} />}
+                        label={appt.date}
+                        size="small"
                         variant="outlined"
                         sx={{ fontWeight: 600 }}
                       />
-                    </TableCell>
-                    <TableCell sx={{ textAlign: 'right' }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                        {appt.status === 'Scheduled' && (
-                          <IconButton
-                            size="small"
-                            color="success"
-                            title="Mark as Completed"
-                            onClick={() => handleStatusUpdate(appt.id, 'Completed')}
-                          >
-                            <CheckCircle size={18} />
-                          </IconButton>
-                        )}
-                        {appt.status === 'Scheduled' && (
-                          <IconButton
-                            size="small"
-                            color="warning"
-                            title="Cancel Appointment"
-                            onClick={() => handleStatusUpdate(appt.id, 'Cancelled')}
-                          >
-                            <XCircle size={18} />
-                          </IconButton>
-                        )}
-                        <IconButton
+                      <Chip
+                        icon={<Clock size={13} />}
+                        label={appt.time}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    </Box>
+
+                    <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>
+                      <strong>Purpose:</strong> {appt.reason}
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+                      {appt.status === 'Scheduled' && (
+                        <Button
                           size="small"
-                          color="error"
-                          title="Delete"
-                          onClick={() => handleDelete(appt.id)}
+                          color="success"
+                          variant="outlined"
+                          startIcon={<CheckCircle size={14} />}
+                          onClick={() => handleStatusUpdate(appt.id, 'Completed')}
                         >
-                          <Trash2 size={18} />
-                        </IconButton>
-                      </Box>
-                    </TableCell>
+                          Complete
+                        </Button>
+                      )}
+                      {appt.status === 'Scheduled' && (
+                        <Button
+                          size="small"
+                          color="warning"
+                          variant="outlined"
+                          startIcon={<XCircle size={14} />}
+                          onClick={() => handleStatusUpdate(appt.id, 'Cancelled')}
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                      <Button
+                        size="small"
+                        color="error"
+                        variant="outlined"
+                        startIcon={<Trash2 size={14} />}
+                        onClick={() => handleDelete(appt.id)}
+                      >
+                        Delete
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+
+            {/* Desktop & Tablet Table (md and up) */}
+            <TableContainer component={Paper} elevation={0} sx={{ display: { xs: 'none', md: 'block' }, border: '1px solid', borderColor: 'divider', borderRadius: 3, overflowX: 'auto' }}>
+              <Table>
+                <TableHead sx={{ bgcolor: 'background.default' }}>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Patient</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Consulting Doctor</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Date & Time</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Purpose</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 700, textAlign: 'right' }}>Actions</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {filteredAppointments.map(appt => (
+                    <TableRow key={appt.id} hover>
+                      <TableCell sx={{ fontWeight: 600 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <User size={16} />
+                          {appt.patientName || appt.patientId}
+                        </Box>
+                      </TableCell>
+                      <TableCell>{appt.doctorName || appt.doctorId}</TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Calendar size={13} /> {appt.date}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Clock size={12} /> {appt.time}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell sx={{ maxWidth: 220 }}>
+                        <Typography variant="body2" noWrap>{appt.reason}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={appt.status}
+                          size="small"
+                          color={
+                            appt.status === 'Completed' ? 'success' :
+                            appt.status === 'Scheduled' ? 'primary' :
+                            'error'
+                          }
+                          variant="outlined"
+                          sx={{ fontWeight: 600 }}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ textAlign: 'right' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                          {appt.status === 'Scheduled' && (
+                            <IconButton
+                              size="small"
+                              color="success"
+                              title="Mark as Completed"
+                              onClick={() => handleStatusUpdate(appt.id, 'Completed')}
+                            >
+                              <CheckCircle size={18} />
+                            </IconButton>
+                          )}
+                          {appt.status === 'Scheduled' && (
+                            <IconButton
+                              size="small"
+                              color="warning"
+                              title="Cancel Appointment"
+                              onClick={() => handleStatusUpdate(appt.id, 'Cancelled')}
+                            >
+                              <XCircle size={18} />
+                            </IconButton>
+                          )}
+                          <IconButton
+                            size="small"
+                            color="error"
+                            title="Delete"
+                            onClick={() => handleDelete(appt.id)}
+                          >
+                            <Trash2 size={18} />
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </>
+        )}
 
         {/* Schedule Dialog */}
-        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
           <DialogTitle sx={{ fontWeight: 700 }}>Book Specialist Consultation</DialogTitle>
           <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
             <TextField

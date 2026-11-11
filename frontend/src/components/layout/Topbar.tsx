@@ -112,9 +112,11 @@ export const Topbar = ({ onMenuClick }: { onMenuClick: () => void }) => {
               alignItems: 'center',
               bgcolor: 'background.paper',
               borderRadius: 2,
-              px: 2,
+              px: { xs: 1.2, sm: 2 },
               py: 0.6,
-              width: { xs: '100%', md: 360 },
+              width: { xs: 'auto', sm: 260, md: 360 },
+              flex: { xs: 1, sm: 'none' },
+              maxWidth: 360,
               border: `1px solid ${theme.palette.divider}`,
               '&:focus-within': {
                 borderColor: 'primary.main',
@@ -124,18 +126,28 @@ export const Topbar = ({ onMenuClick }: { onMenuClick: () => void }) => {
           >
             <Search size={18} color={theme.palette.text.secondary} />
             <InputBase 
-              placeholder="Search patients, doctors, beds (Press Enter)..." 
+              placeholder="Search or ask AI..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{ ml: 1.5, flex: 1, fontSize: '0.88rem' }}
+              sx={{ ml: { xs: 0.8, sm: 1.5 }, flex: 1, fontSize: { xs: '0.8rem', sm: '0.88rem' } }}
             />
           </Box>
 
           <Box sx={{ flexGrow: 1 }} />
 
           {/* Action Icons */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            {/* Ask AI Quick Button */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.8, sm: 1.5 } }}>
+            {/* Ask AI Quick Button (Mobile Icon) */}
+            <IconButton
+              color="primary"
+              onClick={() => navigate('/ai-assistant')}
+              sx={{ display: { xs: 'inline-flex', sm: 'none' } }}
+              title="Ask AI Assistant"
+            >
+              <Sparkles size={20} />
+            </IconButton>
+
+            {/* Ask AI Quick Button (Desktop / Tablet) */}
             <Button
               variant="outlined"
               color="primary"

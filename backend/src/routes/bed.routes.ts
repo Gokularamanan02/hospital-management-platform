@@ -34,10 +34,37 @@ router.patch('/:id/status', async (req, res) => {
   try {
     const { status, patientId } = req.body;
     let patientName: string | undefined;
-    if (patientId) {
+
+    // Find the target bed first
+    const allBeds = await bedsStore.getAll();
+    const targetBed = allBeds.find(b => b.id === req.params.id || b.bedNumber === req.params.id);
+
+    if (status === 'Occupied' && patientId) {
       const patient = await patientsStore.getById(patientId);
-      if (patient) patientName = patient.name;
+      if (patient) {
+        patientName = patient.name;
+        // Auto sync patient record: set to Admitted and link bed
+        if (targetBed) {
+          await patientsStore.update(patient.id, {
+            status: 'Admitted',
+            ward: targetBed.ward,
+            bedNumber: targetBed.bedNumber
+          });
+        }
+      }
+    } else if (status === 'Available' || status === 'Maintenance') {
+      // If the bed was previously occupied, free that patient's assigned bed
+      if (targetBed && targetBed.patientId) {
+        const formerPatient = await patientsStore.getById(targetBed.patientId);
+        if (formerPatient) {
+          await patientsStore.update(formerPatient.id, {
+            bedNumber: undefined,
+            status: 'Discharged'
+          });
+        }
+      }
     }
+
     const updated = await bedsStore.updateStatus(req.params.id, status, patientId, patientName);
     if (!updated) return res.status(404).json({ message: 'Bed not found' });
     res.json(updated);

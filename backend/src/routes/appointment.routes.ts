@@ -19,7 +19,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Missing appointment details' });
     }
     const patient = await patientsStore.getById(patientId);
-    const doctor = doctorsStore.getById(doctorId);
+    const doctor = await doctorsStore.getById(doctorId);
 
     const appt = await appointmentsStore.create({
       patientId,

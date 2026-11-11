@@ -136,7 +136,16 @@ export const AIAssistantPage = () => {
         </Box>
 
         {/* Quick Prompt Chips */}
-        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+        <Box sx={{
+          display: 'flex',
+          gap: 1,
+          mb: 2,
+          flexWrap: { xs: 'nowrap', sm: 'wrap' },
+          overflowX: { xs: 'auto', sm: 'visible' },
+          pb: { xs: 0.5, sm: 0 },
+          scrollbarWidth: 'none',
+          '&::-webkit-scrollbar': { display: 'none' }
+        }}>
           {QUICK_PROMPTS.map((qp, i) => (
             <Chip
               key={i}
@@ -146,7 +155,7 @@ export const AIAssistantPage = () => {
               size="small"
               variant="outlined"
               onClick={() => handleSend(qp.query)}
-              sx={{ bgcolor: 'background.paper', fontWeight: 600, borderColor: 'divider' }}
+              sx={{ bgcolor: 'background.paper', fontWeight: 600, borderColor: 'divider', flexShrink: 0 }}
             />
           ))}
         </Box>
@@ -296,7 +305,7 @@ export const AIAssistantPage = () => {
               onClick={() => handleSend()}
               disabled={loading || !input.trim()}
               endIcon={<Send size={16} />}
-              sx={{ px: 3, borderRadius: 3, fontWeight: 700 }}
+              sx={{ px: { xs: 2, sm: 3 }, borderRadius: 3, fontWeight: 700, whiteSpace: 'nowrap' }}
             >
               Analyze
             </Button>

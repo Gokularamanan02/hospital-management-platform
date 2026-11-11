@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Grid, Card, CardContent, Button, Dialog,
   DialogTitle, DialogContent, DialogActions, TextField, MenuItem,
-  CircularProgress, Chip, InputAdornment
+  CircularProgress, Chip, InputAdornment, useTheme, useMediaQuery
 } from '@mui/material';
 import { FileText, Plus, Search, User, Stethoscope, Pill, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -12,6 +12,8 @@ import { patientService } from '../services/patient.service';
 import { doctorService } from '../services/doctor.service';
 
 export const MedicalRecordsPage = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -229,7 +231,7 @@ export const MedicalRecordsPage = () => {
         )}
 
         {/* Add Record Dialog */}
-        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth fullScreen={isMobile}>
           <DialogTitle sx={{ fontWeight: 700 }}>Log New Medical Consultation Record</DialogTitle>
           <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
             <TextField
