@@ -439,11 +439,22 @@ export const bedsStore = {
   async updateStatus(id: string, status: BedData['status'], patientId?: string, patientName?: string): Promise<BedData | null> {
     if (getMongoReady()) {
       try {
-        await Bed.findByIdAndUpdate(id, {
+        const updated: any = await Bed.findByIdAndUpdate(id, {
           status,
           patientId: status === 'Occupied' ? patientId : undefined,
           patientName: status === 'Occupied' ? patientName : undefined
-        });
+        }, { new: true });
+        if (updated) {
+          return {
+            id: updated._id.toString(),
+            ward: updated.ward,
+            bedNumber: updated.bedNumber,
+            type: updated.type,
+            status: updated.status,
+            patientId: updated.patientId,
+            patientName: updated.patientName
+          };
+        }
       } catch (err) {
         console.warn('MongoDB bed update failed:', err);
       }

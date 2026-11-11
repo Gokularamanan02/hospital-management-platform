@@ -5,7 +5,7 @@ import {
   Button, Chip
 } from '@mui/material';
 import {
-  Menu as MenuIcon, Search, Bell, LogOut, X
+  Menu as MenuIcon, Search, Bell, LogOut, X, Sparkles
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -50,7 +50,13 @@ export const Topbar = ({ onMenuClick }: { onMenuClick: () => void }) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
     const lower = searchQuery.toLowerCase();
-    if (lower.includes('doc') || lower.includes('dr')) {
+    if (
+      lower.startsWith('who') || lower.startsWith('what') || lower.startsWith('how') ||
+      lower.startsWith('why') || lower.startsWith('is') || lower.startsWith('can') ||
+      lower.includes('?') || lower.includes('summarize') || lower.includes('symptom')
+    ) {
+      navigate('/ai-assistant', { state: { initialQuery: searchQuery } });
+    } else if (lower.includes('doc') || lower.includes('dr')) {
       navigate('/doctors');
     } else if (lower.includes('bed') || lower.includes('icu') || lower.includes('ward')) {
       navigate('/beds');
@@ -128,7 +134,25 @@ export const Topbar = ({ onMenuClick }: { onMenuClick: () => void }) => {
           <Box sx={{ flexGrow: 1 }} />
 
           {/* Action Icons */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {/* Ask AI Quick Button */}
+            <Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              startIcon={<Sparkles size={15} />}
+              onClick={() => navigate('/ai-assistant')}
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                display: { xs: 'none', sm: 'inline-flex' }
+              }}
+            >
+              Ask AI
+            </Button>
+
             {/* Notification Bell */}
             <IconButton sx={{ color: 'text.secondary' }} onClick={() => setNotificationsOpen(true)}>
               <Badge badgeContent={notifications.length} color="secondary" sx={{ '& .MuiBadge-badge': { fontSize: '0.7rem', height: 16, minWidth: 16 } }}>

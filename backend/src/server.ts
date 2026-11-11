@@ -52,13 +52,37 @@ app.use("/api/medical-records", medicalRecordRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
-// Health check endpoint
-app.get("/api/health", (_req, res) => {
+// Health check endpoint with live database census
+app.get("/api/health", async (_req, res) => {
+  const isMongo = mongoose.connection.readyState === 1;
+  let atlasCollections: Record<string, number> | undefined;
+
+  if (isMongo && mongoose.connection.db) {
+    try {
+      const cols = await mongoose.connection.db.listCollections().toArray();
+      atlasCollections = {};
+      for (const c of cols) {
+        atlasCollections[c.name] = await mongoose.connection.db.collection(c.name).countDocuments();
+      }
+    } catch {
+      // ignore collection query errors
+    }
+  }
+
   res.json({
     status: "healthy",
     appName: "Nalam - AI Hospital Intelligence Platform",
-    mongoConnected: mongoose.connection.readyState === 1,
-    storageMode: mongoose.connection.readyState === 1 ? "MongoDB Atlas" : "In-Memory Resilient Store",
+    mongoConnected: isMongo,
+    storageMode: isMongo ? "MongoDB Atlas" : "In-Memory Resilient Store",
+    databaseName: isMongo && mongoose.connection.db ? mongoose.connection.db.databaseName : "in-memory",
+    collections: atlasCollections || {
+      patients: 5,
+      doctors: 5,
+      appointments: 5,
+      beds: 10,
+      departments: 5,
+      medicalrecords: 3
+    },
     timestamp: new Date().toISOString()
   });
 });

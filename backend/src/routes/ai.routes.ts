@@ -104,13 +104,16 @@ Do NOT wrap in markdown backticks. Return raw JSON.
     }
 
     // OPTION B: Advanced Built-In Hospital Knowledge & Semantic Intelligence Engine
+    const promptWords = lower.split(/[^a-z0-9]+/);
 
-    // 1. Patient Specific Search (Matches name or ID)
-    const matchedPatient = allPatients.find(p =>
-      lower.includes(p.name.toLowerCase()) ||
-      lower.includes(p.id.toLowerCase()) ||
-      p.name.toLowerCase().split(' ').some(part => part.length > 2 && lower.includes(part))
-    );
+    // 1. Patient Specific Search (Matches exact full name, ID, or unique name tokens)
+    let matchedPatient = allPatients.find(p => lower.includes(p.name.toLowerCase()) || lower.includes(p.id.toLowerCase()));
+    if (!matchedPatient) {
+      matchedPatient = allPatients.find(p => {
+        const nameTokens = p.name.toLowerCase().split(/\s+/);
+        return nameTokens.some(token => token.length > 2 && promptWords.includes(token));
+      });
+    }
 
     if (matchedPatient) {
       const records = allRecords.filter(r => r.patientId === matchedPatient.id);
@@ -144,10 +147,13 @@ Do NOT wrap in markdown backticks. Return raw JSON.
     }
 
     // 2. Doctor Specific Search
-    const matchedDoctor = allDoctors.find(d =>
-      lower.includes(d.name.toLowerCase()) ||
-      d.name.toLowerCase().replace('dr.', '').trim().split(' ').some(part => part.length > 2 && lower.includes(part))
-    );
+    let matchedDoctor = allDoctors.find(d => lower.includes(d.name.toLowerCase()) || lower.includes(d.id.toLowerCase()));
+    if (!matchedDoctor) {
+      matchedDoctor = allDoctors.find(d => {
+        const docTokens = d.name.toLowerCase().replace('dr.', '').trim().split(/\s+/);
+        return docTokens.some(token => token.length > 2 && promptWords.includes(token));
+      });
+    }
 
     if (matchedDoctor) {
       const docAppts = allAppointments.filter(a => a.doctorId === matchedDoctor.id || a.doctorName === matchedDoctor.name);
@@ -163,34 +169,61 @@ Do NOT wrap in markdown backticks. Return raw JSON.
       });
     }
 
-    // 3. Clinical Specialty / Department queries (Cardiology, Neuro, Pediatrics, Ortho, Surgery)
+    // 3. Clinical Specialty / Department queries with Symptom Recognition
     const specialties = [
-      { key: 'cardio', name: 'Cardiology', desc: 'Heart care, ECG, Angiography, Echo' },
-      { key: 'neuro', name: 'Neurology', desc: 'Brain, stroke intervention, spine, neural disorders' },
-      { key: 'pedia', name: 'Pediatrics', desc: 'Child health, neonatal monitoring, infant vaccines' },
-      { key: 'ortho', name: 'Orthopedics', desc: 'Bone trauma, joint replacement, spine arthroscopy' },
-      { key: 'surg', name: 'General Surgery', desc: 'Laparoscopic, minimally invasive trauma surgery' },
-      { key: 'emerg', name: 'Emergency', desc: '24/7 Level-1 Resuscitation & Trauma Care' }
+      {
+        keys: ['cardio', 'heart', 'chest pain', 'cardiac', 'ecg', 'bp', 'blood pressure', 'angina', 'palpitation'],
+        name: 'Cardiology',
+        desc: 'advanced cardiac catheterization, 24/7 primary angioplasty, pacemaker clinics, echocardiography, and preventive heart care'
+      },
+      {
+        keys: ['neuro', 'brain', 'stroke', 'headache', 'nerve', 'paralysis', 'seizure', 'migraine', 'dizziness'],
+        name: 'Neurology',
+        desc: 'comprehensive stroke rescue unit, neuro-critical care, epilepsy management, headache clinics, and spine neurology'
+      },
+      {
+        keys: ['pedia', 'child', 'kid', 'baby', 'infant', 'vaccin', 'pediatric'],
+        name: 'Pediatrics',
+        desc: 'dedicated Level-3 Neonatal ICU (NICU), pediatric cardiology, developmental assessments, and immunization clinics'
+      },
+      {
+        keys: ['ortho', 'bone', 'joint', 'knee', 'spine', 'fracture', 'arthritis', 'ligament', 'back pain'],
+        name: 'Orthopedics',
+        desc: 'robotic-assisted joint replacement, sports arthroscopy, fracture trauma management, and pediatric orthopedic care'
+      },
+      {
+        keys: ['surg', 'operation', 'appendix', 'hernia', 'gallbladder', 'laparo', 'surgeon'],
+        name: 'General Surgery',
+        desc: 'minimally invasive laparoscopic procedures, surgical oncology, gastrointestinal surgery, and trauma resuscitation'
+      },
+      {
+        keys: ['emerg', 'trauma', 'accident', 'urgent', 'casualty', 'resuscitat', 'ambulance', 'hotline'],
+        name: 'Emergency',
+        desc: '24/7 Level-1 Resuscitation, round-the-clock emergency physicians, rapid response trauma team, and advanced cardiac life support'
+      }
     ];
 
-    const matchedSpecialty = specialties.find(s => lower.includes(s.key));
+    const matchedSpecialty = specialties.find(s => s.keys.some(k => lower.includes(k)));
     if (matchedSpecialty) {
       const docsInDept = allDoctors.filter(d =>
         d.specialization.toLowerCase().includes(matchedSpecialty.name.toLowerCase()) ||
         d.department.toLowerCase().includes(matchedSpecialty.name.toLowerCase())
       );
       const deptData = allDepartments.find(d => d.name.toLowerCase().includes(matchedSpecialty.name.toLowerCase()));
+      const availableDocs = docsInDept.filter(d => d.availability === 'Available');
 
       return res.json({
         category: 'DEPARTMENT_INTEL',
         title: `${matchedSpecialty.name} Specialty Service`,
-        dataBadge: `Specialists: ${docsInDept.length} On Roster | Department Head: ${deptData ? deptData.headDoctorName : 'Staff Physician'}`,
-        summary: `The ${matchedSpecialty.name} Department provides ${matchedSpecialty.desc}. Active specialists include: ${
-          docsInDept.map(d => `${d.name} (${d.availability})`).join(', ') || 'Departmental on-call staff'
+        dataBadge: `Specialists: ${docsInDept.length} Total (${availableDocs.length} On Floor) | Head: ${deptData ? deptData.headDoctorName : 'Senior Staff'}`,
+        summary: `For inquiries regarding ${matchedSpecialty.name}: Our center provides ${matchedSpecialty.desc}. Active physicians include: ${
+          docsInDept.map(d => `${d.name} (${d.specialization} - ${d.availability})`).join(', ') || 'Departmental on-call staff'
         }. ${
-          deptData ? `Current bed capacity is ${deptData.capacity} with ${deptData.occupiedBeds} beds currently occupied.` : ''
+          deptData ? `Ward capacity is ${deptData.capacity} beds (${deptData.occupiedBeds} currently admitted).` : ''
         }`,
-        insight: `Consultations for ${matchedSpecialty.name} can be scheduled during regular OPD hours (9:00 AM – 5:00 PM). Emergency triage is available round-the-clock.`,
+        insight: availableDocs.length > 0
+          ? `${availableDocs.map(d => d.name).join(', ')} is currently available for consultation. You can schedule an appointment directly in the Appointments tab or dial Reception at ${HOSPITAL_INFO.receptionDesk}.`
+          : `All designated ${matchedSpecialty.name} surgeons are currently in procedure or rounds. For urgent acute symptoms, report directly to the 24/7 Emergency Triage.`,
         metadata: { specialists: docsInDept, department: deptData }
       });
     }

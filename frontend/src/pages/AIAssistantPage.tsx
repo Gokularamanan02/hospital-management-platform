@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Box, Typography, Paper, TextField, Button, Avatar, Chip,
   CircularProgress
 } from '@mui/material';
-import { Bot, User, Sparkles, Send, Stethoscope, Bed, Users } from 'lucide-react';
+import { Bot, User, Sparkles, Send, Stethoscope, Bed, Users, PhoneCall, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_NAME } from '../config/constants';
 import { aiService } from '../services/ai.service';
@@ -18,6 +19,7 @@ interface Message {
 }
 
 export const AIAssistantPage = () => {
+  const location = useLocation();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'm1',
@@ -86,6 +88,13 @@ export const AIAssistantPage = () => {
     }
   };
 
+  useEffect(() => {
+    const initial = (location.state as any)?.initialQuery;
+    if (initial && typeof initial === 'string') {
+      handleSend(initial);
+    }
+  }, [location.state]);
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -97,9 +106,10 @@ export const AIAssistantPage = () => {
     { label: 'Summarize Ramesh Patel', query: 'Summarize clinical records for Ramesh Patel', icon: <User size={13} /> },
     { label: 'Check ICU Ward Beds', query: 'How many ICU and emergency beds are available right now?', icon: <Bed size={13} /> },
     { label: 'Specialists On Duty', query: 'Which doctors and surgeons are currently available on duty?', icon: <Stethoscope size={13} /> },
-    { label: 'Patient Priya Narayanan', query: 'What is Priya Narayanan diagnosis and treatment plan?', icon: <Users size={13} /> },
-    { label: 'Emergency Hotline & Hours', query: 'What is the hospital emergency hotline and visiting hours?', icon: <Sparkles size={13} /> },
-    { label: 'Cardiology Specialists', query: 'Tell me about the Cardiology Department and available cardiologists', icon: <Stethoscope size={13} /> }
+    { label: 'Who is the Cardiologist?', query: 'Who should I see for heart or chest pain problems?', icon: <Stethoscope size={13} /> },
+    { label: 'Emergency & Hotline', query: 'What is the hospital emergency number, address, and visiting hours?', icon: <PhoneCall size={13} /> },
+    { label: 'Appointments Today', query: 'What appointments are scheduled today and how can I book one?', icon: <Calendar size={13} /> },
+    { label: 'Patient Priya Narayanan', query: 'What is Priya Narayanan diagnosis and treatment plan?', icon: <Users size={13} /> }
   ];
 
   return (
