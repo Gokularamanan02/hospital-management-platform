@@ -169,7 +169,60 @@ Do NOT wrap in markdown backticks. Return raw JSON.
       });
     }
 
-    // 3. Clinical Specialty / Department queries with Symptom Recognition
+    // 3. Bed, Ward, & ICU Capacity queries (Priority check for bed availability)
+    if (lower.includes('bed') || lower.includes('icu') || lower.includes('ward') || lower.includes('capacity') || lower.includes('occupan')) {
+      const occupied = allBeds.filter(b => b.status === 'Occupied');
+      const available = allBeds.filter(b => b.status === 'Available');
+      const maintenance = allBeds.filter(b => (b.status as string) === 'Maintenance');
+      const icuAvailable = allBeds.filter(b => b.type === 'ICU' && b.status === 'Available');
+      const icuTotal = allBeds.filter(b => b.type === 'ICU');
+      const occupancyRate = allBeds.length > 0 ? Math.round((occupied.length / allBeds.length) * 100) : 0;
+
+      return res.json({
+        category: 'BED_CAPACITY',
+        title: 'Ward Census & Bed Availability Intel',
+        dataBadge: `Total Beds: ${allBeds.length} | Available: ${available.length} | Occupied: ${occupied.length} (${occupancyRate}%)`,
+        summary: `There are currently ${available.length} beds immediately available for patient admission across wards. ICU capacity: ${icuAvailable.length} of ${icuTotal.length} ICU beds free. Current bed occupancy rate stands at ${occupancyRate}%. ${maintenance.length > 0 ? `${maintenance.length} bed(s) undergoing maintenance.` : ''}`,
+        insight: icuAvailable.length <= 1
+          ? `WARNING: Critical ICU reserve threshold reached (${icuAvailable.length} ICU bed remaining). Assess stable ICU patients for ward step-down immediately.`
+          : `Inpatient capacity is stable. General Ward and Private Ward have sufficient beds to absorb projected admission demands.`,
+        metadata: { availableCount: available.length, occupiedCount: occupied.length, icuAvailableCount: icuAvailable.length }
+      });
+    }
+
+    // 4. Emergency Hotline, Contact Numbers, Address, or Visiting Hours
+    if (
+      lower.includes('contact') || lower.includes('phone') || lower.includes('number') ||
+      lower.includes('address') || lower.includes('location') || lower.includes('visiting') ||
+      lower.includes('hours') || lower.includes('ambulance') || lower.includes('hotline') ||
+      (lower.includes('emergency') && !lower.includes('department'))
+    ) {
+      return res.json({
+        category: 'HOSPITAL_OPERATIONS',
+        title: 'Hospital Services & Emergency Directory',
+        dataBadge: `24/7 Hotline: ${HOSPITAL_INFO.emergencyHotline}`,
+        summary: `Nalam Hospital is located at ${HOSPITAL_INFO.address}. Emergency & Trauma services operate 24/7 with immediate ambulance response via ${HOSPITAL_INFO.emergencyHotline}. Reception & Desk: ${HOSPITAL_INFO.receptionDesk}. Email: ${HOSPITAL_INFO.email}. Regular Visiting Hours: ${HOSPITAL_INFO.visitingHours}. Key capabilities: ${HOSPITAL_INFO.services.slice(0, 4).join(', ')}.`,
+        insight: `For cashless medical insurance desk queries, visit Ground Floor Counter 3 with your policy card and photo ID between 8:00 AM and 8:00 PM.`,
+        metadata: { hospitalInfo: HOSPITAL_INFO }
+      });
+    }
+
+    // 5. Appointments & Consultation Booking queries
+    if (lower.includes('appoint') || lower.includes('book') || lower.includes('schedule') || lower.includes('slot') || lower.includes('visit doctor')) {
+      const scheduled = allAppointments.filter(a => a.status === 'Scheduled');
+      const completed = allAppointments.filter(a => a.status === 'Completed');
+
+      return res.json({
+        category: 'APPOINTMENTS',
+        title: 'Consultation & Appointment Operations',
+        dataBadge: `Total Scheduled: ${scheduled.length} | Completed Today: ${completed.length}`,
+        summary: `There are currently ${scheduled.length} active consultation appointments scheduled in the hospital system. Today's sessions are running smoothly with an average patient consultation turnaround of 18 minutes. To schedule a new appointment, go to the Appointments page, click "Schedule Appointment", and choose your preferred doctor and time slot.`,
+        insight: `Doctors Dr. Rajesh Sharma (Cardiology) and Dr. Anita Rao (Pediatrics) have morning slots open for booking tomorrow.`,
+        metadata: { scheduled }
+      });
+    }
+
+    // 6. Clinical Specialty / Department queries with Symptom Recognition
     const specialties = [
       {
         keys: ['cardio', 'heart', 'chest pain', 'cardiac', 'ecg', 'bp', 'blood pressure', 'angina', 'palpitation'],
@@ -197,7 +250,7 @@ Do NOT wrap in markdown backticks. Return raw JSON.
         desc: 'minimally invasive laparoscopic procedures, surgical oncology, gastrointestinal surgery, and trauma resuscitation'
       },
       {
-        keys: ['emerg', 'trauma', 'accident', 'urgent', 'casualty', 'resuscitat', 'ambulance', 'hotline'],
+        keys: ['emerg', 'trauma', 'accident', 'urgent', 'casualty', 'resuscitat'],
         name: 'Emergency',
         desc: '24/7 Level-1 Resuscitation, round-the-clock emergency physicians, rapid response trauma team, and advanced cardiac life support'
       }
@@ -228,29 +281,8 @@ Do NOT wrap in markdown backticks. Return raw JSON.
       });
     }
 
-    // 4. Bed, Ward, & ICU Capacity queries
-    if (lower.includes('bed') || lower.includes('icu') || lower.includes('ward') || lower.includes('capacity') || lower.includes('occupan')) {
-      const occupied = allBeds.filter(b => b.status === 'Occupied');
-      const available = allBeds.filter(b => b.status === 'Available');
-      const maintenance = allBeds.filter(b => (b.status as string) === 'Maintenance');
-      const icuAvailable = allBeds.filter(b => b.type === 'ICU' && b.status === 'Available');
-      const icuTotal = allBeds.filter(b => b.type === 'ICU');
-      const occupancyRate = Math.round((occupied.length / allBeds.length) * 100);
-
-      return res.json({
-        category: 'BED_CAPACITY',
-        title: 'Ward Census & Bed Availability Intel',
-        dataBadge: `Total Beds: ${allBeds.length} | Available: ${available.length} | Occupied: ${occupied.length} (${occupancyRate}%)`,
-        summary: `There are currently ${available.length} beds immediately available for patient admission across wards. ICU capacity: ${icuAvailable.length} of ${icuTotal.length} ICU beds free. Occupancy rate stands at ${occupancyRate}%. ${maintenance.length > 0 ? `${maintenance.length} bed(s) undergoing maintenance.` : ''}`,
-        insight: icuAvailable.length <= 1
-          ? `WARNING: Critical ICU reserve threshold reached (${icuAvailable.length} ICU bed remaining). Assess stable ICU patients for ward step-down immediately.`
-          : `Inpatient capacity is stable. General Ward and Private Ward have sufficient beds to absorb projected admission demands.`,
-        metadata: { availableCount: available.length, occupiedCount: occupied.length, icuAvailableCount: icuAvailable.length }
-      });
-    }
-
-    // 5. Doctors Directory & Floor Staffing queries
-    if (lower.includes('doctor') || lower.includes('physician') || lower.includes('specialist') || lower.includes('surgeon') || lower.includes('who is available')) {
+    // 7. Doctors Directory & Floor Staffing queries
+    if (lower.includes('doctor') || lower.includes('physician') || lower.includes('specialist') || lower.includes('surgeon') || lower.includes('who is available') || lower.includes('who is on duty')) {
       const availableDocs = allDoctors.filter(d => d.availability === 'Available');
       const inSurgery = allDoctors.filter(d => d.availability === 'In Surgery');
       const offDuty = allDoctors.filter(d => d.availability === 'Off Duty');
@@ -264,37 +296,6 @@ Do NOT wrap in markdown backticks. Return raw JSON.
         }. ${inSurgery.length > 0 ? `In operating theatre: ${inSurgery.map(d => d.name).join(', ')}.` : ''}`,
         insight: `For immediate appointment scheduling, select the physician from the Appointments tab or contact the front desk.`,
         metadata: { availableDoctors: availableDocs }
-      });
-    }
-
-    // 6. Appointments & Consultation Booking queries
-    if (lower.includes('appoint') || lower.includes('book') || lower.includes('schedule') || lower.includes('slot') || lower.includes('visit doctor')) {
-      const scheduled = allAppointments.filter(a => a.status === 'Scheduled');
-      const completed = allAppointments.filter(a => a.status === 'Completed');
-
-      return res.json({
-        category: 'APPOINTMENTS',
-        title: 'Consultation & Appointment Operations',
-        dataBadge: `Total Scheduled: ${scheduled.length} | Completed Today: ${completed.length}`,
-        summary: `There are currently ${scheduled.length} active consultation appointments scheduled in the hospital system. Today's sessions are running smoothly with an average patient consultation turnaround of 18 minutes. To schedule a new appointment, go to the Appointments page, click "Schedule Appointment", and choose your preferred doctor and time slot.`,
-        insight: `Doctors Dr. Rajesh Sharma (Cardiology) and Dr. Anita Rao (Pediatrics) have morning slots open for booking tomorrow.`,
-        metadata: { scheduled }
-      });
-    }
-
-    // 7. Emergency, Ambulance, Visiting Hours, or Hospital Services queries
-    if (
-      lower.includes('emergency') || lower.includes('ambulance') || lower.includes('contact') ||
-      lower.includes('visiting') || lower.includes('phone') || lower.includes('address') ||
-      lower.includes('hours') || lower.includes('hospital') || lower.includes('service')
-    ) {
-      return res.json({
-        category: 'HOSPITAL_OPERATIONS',
-        title: 'Hospital Services & Emergency Directory',
-        dataBadge: `24/7 Hotline: ${HOSPITAL_INFO.emergencyHotline}`,
-        summary: `Nalam Hospital is located at ${HOSPITAL_INFO.address}. Emergency & Trauma services operate 24/7 with immediate ambulance response via ${HOSPITAL_INFO.emergencyHotline}. Regular Visiting Hours are ${HOSPITAL_INFO.visitingHours}. Key capabilities: ${HOSPITAL_INFO.services.slice(0, 4).join(', ')}.`,
-        insight: `For cashless medical insurance desk queries, visit Ground Floor Counter 3 with your policy card and photo ID between 8:00 AM and 8:00 PM.`,
-        metadata: { hospitalInfo: HOSPITAL_INFO }
       });
     }
 
