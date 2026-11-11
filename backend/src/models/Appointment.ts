@@ -25,3 +25,4 @@ const AppointmentSchema: Schema = new Schema({
 });
 
 export default mongoose.model<IAppointment>('Appointment', AppointmentSchema);
+

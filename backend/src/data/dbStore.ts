@@ -430,7 +430,26 @@ export const bedsStore = {
     }
     return null;
   },
-  create(data: Omit<BedData, 'id'>): BedData {
+  async create(data: Omit<BedData, 'id'>): Promise<BedData> {
+    if (getMongoReady()) {
+      try {
+        const b = new Bed(data);
+        const saved: any = await b.save();
+        const bed: BedData = {
+          id: saved._id.toString(),
+          ward: saved.ward,
+          bedNumber: saved.bedNumber,
+          type: saved.type,
+          status: saved.status,
+          patientId: saved.patientId,
+          patientName: saved.patientName
+        };
+        inMemoryStore.beds.push(bed);
+        return bed;
+      } catch (err) {
+        console.warn('MongoDB bed save failed:', err);
+      }
+    }
     const newBed: BedData = {
       ...data,
       id: 'b_' + Date.now().toString(36)
@@ -463,7 +482,26 @@ export const departmentsStore = {
     }
     return inMemoryStore.departments;
   },
-  create(data: Omit<DepartmentData, 'id'>): DepartmentData {
+  async create(data: Omit<DepartmentData, 'id'>): Promise<DepartmentData> {
+    if (getMongoReady()) {
+      try {
+        const d = new Department(data);
+        const saved: any = await d.save();
+        const dept: DepartmentData = {
+          id: saved._id.toString(),
+          name: saved.name,
+          headDoctorId: saved.headDoctorId,
+          headDoctorName: saved.headDoctorName,
+          capacity: saved.capacity,
+          occupiedBeds: saved.occupiedBeds,
+          description: saved.description
+        };
+        inMemoryStore.departments.push(dept);
+        return dept;
+      } catch (err) {
+        console.warn('MongoDB department save failed:', err);
+      }
+    }
     const newDept: DepartmentData = {
       ...data,
       id: 'dep_' + Date.now().toString(36)

@@ -3,8 +3,13 @@ import { doctorsStore } from '../data/dbStore.js';
 
 const router = Router();
 
-router.get('/', (_req, res) => {
-  res.json(doctorsStore.getAll());
+router.get('/', async (_req, res) => {
+  try {
+    const docs = await doctorsStore.getAll();
+    res.json(docs);
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving doctors', error });
+  }
 });
 
 router.get('/:id', (req, res) => {
@@ -13,13 +18,13 @@ router.get('/:id', (req, res) => {
   res.json(doc);
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { name, specialization, experienceYears, availability, contact, email, department } = req.body;
     if (!name || !specialization || !contact) {
       return res.status(400).json({ message: 'Missing required doctor fields' });
     }
-    const doctor = doctorsStore.create({
+    const doctor = await doctorsStore.create({
       name,
       specialization,
       experienceYears: Number(experienceYears) || 0,
@@ -34,17 +39,24 @@ router.post('/', (req, res) => {
   }
 });
 
-router.put('/:id', (req, res) => {
-  const updated = doctorsStore.update(req.params.id, req.body);
-  if (!updated) return res.status(404).json({ message: 'Doctor not found' });
-  res.json(updated);
+router.put('/:id', async (req, res) => {
+  try {
+    const updated = await doctorsStore.update(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ message: 'Doctor not found' });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ message: 'Error updating doctor', error });
+  }
 });
 
-router.delete('/:id', (req, res) => {
-  const deleted = doctorsStore.delete(req.params.id);
-  if (!deleted) return res.status(404).json({ message: 'Doctor not found' });
-  res.json({ message: 'Doctor removed successfully' });
+router.delete('/:id', async (req, res) => {
+  try {
+    const deleted = await doctorsStore.delete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Doctor not found' });
+    res.json({ message: 'Doctor removed successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting doctor', error });
+  }
 });
 
 export default router;
-

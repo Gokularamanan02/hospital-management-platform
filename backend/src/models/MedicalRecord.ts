@@ -25,3 +25,4 @@ const MedicalRecordSchema: Schema = new Schema({
 });
 
 export default mongoose.model<IMedicalRecord>('MedicalRecord', MedicalRecordSchema);
+

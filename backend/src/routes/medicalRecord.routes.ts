@@ -3,8 +3,13 @@ import { medicalRecordsStore, patientsStore, doctorsStore } from '../data/dbStor
 
 const router = Router();
 
-router.get('/', (_req, res) => {
-  res.json(medicalRecordsStore.getAll());
+router.get('/', async (_req, res) => {
+  try {
+    const recs = await medicalRecordsStore.getAll();
+    res.json(recs);
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving medical records', error });
+  }
 });
 
 router.get('/patient/:patientId', (req, res) => {
@@ -20,7 +25,7 @@ router.post('/', async (req, res) => {
     const patient = await patientsStore.getById(patientId);
     const doctor = doctorsStore.getById(doctorId);
 
-    const record = medicalRecordsStore.create({
+    const record = await medicalRecordsStore.create({
       patientId,
       patientName: patient ? patient.name : 'Unknown Patient',
       date: date || new Date().toISOString().split('T')[0],

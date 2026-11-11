@@ -3,17 +3,22 @@ import { departmentsStore } from '../data/dbStore.js';
 
 const router = Router();
 
-router.get('/', (_req, res) => {
-  res.json(departmentsStore.getAll());
+router.get('/', async (_req, res) => {
+  try {
+    const depts = await departmentsStore.getAll();
+    res.json(depts);
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving departments', error });
+  }
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { name, headDoctorId, headDoctorName, capacity, occupiedBeds, description } = req.body;
     if (!name || !headDoctorName) {
       return res.status(400).json({ message: 'Missing department details' });
     }
-    const dept = departmentsStore.create({
+    const dept = await departmentsStore.create({
       name,
       headDoctorId: headDoctorId || 'd1',
       headDoctorName,

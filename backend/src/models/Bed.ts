@@ -21,3 +21,4 @@ const BedSchema: Schema = new Schema({
 });
 
 export default mongoose.model<IBed>('Bed', BedSchema);
+

@@ -3,17 +3,22 @@ import { bedsStore, patientsStore } from '../data/dbStore.js';
 
 const router = Router();
 
-router.get('/', (_req, res) => {
-  res.json(bedsStore.getAll());
+router.get('/', async (_req, res) => {
+  try {
+    const beds = await bedsStore.getAll();
+    res.json(beds);
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving beds', error });
+  }
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { ward, bedNumber, type, status } = req.body;
     if (!ward || !bedNumber || !type) {
       return res.status(400).json({ message: 'Missing bed information' });
     }
-    const newBed = bedsStore.create({
+    const newBed = await bedsStore.create({
       ward,
       bedNumber,
       type,
@@ -33,7 +38,7 @@ router.patch('/:id/status', async (req, res) => {
       const patient = await patientsStore.getById(patientId);
       if (patient) patientName = patient.name;
     }
-    const updated = bedsStore.updateStatus(req.params.id, status, patientId, patientName);
+    const updated = await bedsStore.updateStatus(req.params.id, status, patientId, patientName);
     if (!updated) return res.status(404).json({ message: 'Bed not found' });
     res.json(updated);
   } catch (error) {
@@ -42,4 +47,3 @@ router.patch('/:id/status', async (req, res) => {
 });
 
 export default router;
-
