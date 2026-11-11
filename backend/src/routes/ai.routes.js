@@ -9,10 +9,12 @@ router.post('/query', async (req, res) => {
             return res.status(400).json({ message: 'Prompt query is required' });
         }
         const lower = prompt.toLowerCase();
-        const allPatients = await patientsStore.getAll();
-        const allBeds = bedsStore.getAll();
-        const allDoctors = doctorsStore.getAll();
-        const allRecords = medicalRecordsStore.getAll();
+        const [allPatients, allBeds, allDoctors, allRecords] = await Promise.all([
+            patientsStore.getAll(),
+            bedsStore.getAll(),
+            doctorsStore.getAll(),
+            medicalRecordsStore.getAll()
+        ]);
         // Check if query is about a specific patient
         const matchedPatient = allPatients.find(p => lower.includes(p.name.toLowerCase()) || lower.includes(p.id.toLowerCase()));
         if (matchedPatient) {

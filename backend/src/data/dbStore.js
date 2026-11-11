@@ -1,12 +1,63 @@
 import mongoose from 'mongoose';
 import Patient from '../models/Patient.js';
+import Doctor from '../models/Doctor.js';
+import Appointment from '../models/Appointment.js';
+import Bed from '../models/Bed.js';
+import Department from '../models/Department.js';
+import MedicalRecord from '../models/MedicalRecord.js';
 import { initialPatients, initialDoctors, initialAppointments, initialBeds, initialDepartments, initialMedicalRecords } from './seedData.js';
 let isMongoReady = false;
 export function setMongoReady(ready) {
     isMongoReady = ready;
+    if (ready) {
+        seedMongoIfEmpty().catch(err => console.error('Error auto-seeding MongoDB Atlas:', err));
+    }
 }
 export function getMongoReady() {
     return isMongoReady && mongoose.connection.readyState === 1;
+}
+// Auto-seed MongoDB Atlas if fresh
+export async function seedMongoIfEmpty() {
+    if (!getMongoReady())
+        return;
+    try {
+        const patientCount = await Patient.countDocuments();
+        if (patientCount === 0) {
+            console.log('🌱 Fresh MongoDB Atlas detected! Seeding initial hospital database collections...');
+            await Patient.insertMany(initialPatients.map(p => ({
+                _id: new mongoose.Types.ObjectId(),
+                name: p.name,
+                age: p.age,
+                gender: p.gender,
+                bloodGroup: p.bloodGroup,
+                contact: p.contact,
+                status: p.status,
+                admissionDate: p.admissionDate ? new Date(p.admissionDate) : undefined,
+                ward: p.ward,
+                bedNumber: p.bedNumber
+            })));
+            await Doctor.insertMany(initialDoctors.map(d => ({
+                name: d.name,
+                specialization: d.specialization,
+                experienceYears: d.experienceYears,
+                availability: d.availability,
+                contact: d.contact,
+                email: d.email,
+                department: d.department
+            })));
+            await Appointment.insertMany(initialAppointments);
+            await Bed.insertMany(initialBeds);
+            await Department.insertMany(initialDepartments);
+            await MedicalRecord.insertMany(initialMedicalRecords);
+            console.log('✓ Successfully seeded Patients, Doctors, Appointments, Beds, Departments & Records into MongoDB Atlas!');
+        }
+        else {
+            console.log(`ℹ MongoDB Atlas already populated (${patientCount} patient records found).`);
+        }
+    }
+    catch (err) {
+        console.error('Failed to seed MongoDB Atlas:', err);
+    }
 }
 // In-Memory mutable stores
 const inMemoryStore = {
@@ -31,7 +82,9 @@ export const patientsStore = {
                     bloodGroup: p.bloodGroup,
                     contact: p.contact,
                     status: p.status,
-                    admissionDate: p.admissionDate ? p.admissionDate.toISOString().split('T')[0] : undefined
+                    admissionDate: p.admissionDate ? p.admissionDate.toISOString().split('T')[0] : undefined,
+                    ward: p.ward,
+                    bedNumber: p.bedNumber
                 }));
             }
             catch (err) {
@@ -53,7 +106,9 @@ export const patientsStore = {
                         bloodGroup: p.bloodGroup,
                         contact: p.contact,
                         status: p.status,
-                        admissionDate: p.admissionDate ? p.admissionDate.toISOString().split('T')[0] : undefined
+                        admissionDate: p.admissionDate ? p.admissionDate.toISOString().split('T')[0] : undefined,
+                        ward: p.ward,
+                        bedNumber: p.bedNumber
                     };
                 }
             }
@@ -66,7 +121,10 @@ export const patientsStore = {
     async create(data) {
         if (getMongoReady()) {
             try {
-                const p = new Patient(data);
+                const p = new Patient({
+                    ...data,
+                    admissionDate: data.admissionDate ? new Date(data.admissionDate) : undefined
+                });
                 const saved = await p.save();
                 const record = {
                     id: saved._id.toString(),
@@ -76,7 +134,9 @@ export const patientsStore = {
                     bloodGroup: saved.bloodGroup,
                     contact: saved.contact,
                     status: saved.status,
-                    admissionDate: saved.admissionDate ? saved.admissionDate.toISOString().split('T')[0] : undefined
+                    admissionDate: saved.admissionDate ? saved.admissionDate.toISOString().split('T')[0] : undefined,
+                    ward: saved.ward,
+                    bedNumber: saved.bedNumber
                 };
                 inMemoryStore.patients.unshift(record);
                 return record;
@@ -105,7 +165,9 @@ export const patientsStore = {
                         bloodGroup: updated.bloodGroup,
                         contact: updated.contact,
                         status: updated.status,
-                        admissionDate: updated.admissionDate ? updated.admissionDate.toISOString().split('T')[0] : undefined
+                        admissionDate: updated.admissionDate ? updated.admissionDate.toISOString().split('T')[0] : undefined,
+                        ward: updated.ward,
+                        bedNumber: updated.bedNumber
                     };
                 }
             }
@@ -136,13 +198,54 @@ export const patientsStore = {
 };
 // 2. Doctors Store
 export const doctorsStore = {
-    getAll() {
+    async getAll() {
+        if (getMongoReady()) {
+            try {
+                const docs = await Doctor.find();
+                if (docs.length > 0) {
+                    return docs.map((d) => ({
+                        id: d._id.toString(),
+                        name: d.name,
+                        specialization: d.specialization,
+                        experienceYears: d.experienceYears,
+                        availability: d.availability,
+                        contact: d.contact,
+                        email: d.email,
+                        department: d.department
+                    }));
+                }
+            }
+            catch (err) {
+                console.warn('MongoDB doctors query failed:', err);
+            }
+        }
         return inMemoryStore.doctors;
     },
     getById(id) {
         return inMemoryStore.doctors.find(d => d.id === id) || null;
     },
-    create(data) {
+    async create(data) {
+        if (getMongoReady()) {
+            try {
+                const d = new Doctor(data);
+                const saved = await d.save();
+                const doc = {
+                    id: saved._id.toString(),
+                    name: saved.name,
+                    specialization: saved.specialization,
+                    experienceYears: saved.experienceYears,
+                    availability: saved.availability,
+                    contact: saved.contact,
+                    email: saved.email,
+                    department: saved.department
+                };
+                inMemoryStore.doctors.push(doc);
+                return doc;
+            }
+            catch (err) {
+                console.warn('MongoDB doctor save failed:', err);
+            }
+        }
         const newDoc = {
             ...data,
             id: 'd_' + Date.now().toString(36)
@@ -150,7 +253,15 @@ export const doctorsStore = {
         inMemoryStore.doctors.push(newDoc);
         return newDoc;
     },
-    update(id, updates) {
+    async update(id, updates) {
+        if (getMongoReady()) {
+            try {
+                await Doctor.findByIdAndUpdate(id, updates);
+            }
+            catch (err) {
+                console.warn('MongoDB doctor update failed:', err);
+            }
+        }
         const target = inMemoryStore.doctors.find(d => d.id === id);
         if (target) {
             Object.assign(target, updates, { id: target.id });
@@ -158,7 +269,15 @@ export const doctorsStore = {
         }
         return null;
     },
-    delete(id) {
+    async delete(id) {
+        if (getMongoReady()) {
+            try {
+                await Doctor.findByIdAndDelete(id);
+            }
+            catch (err) {
+                console.warn('MongoDB doctor delete failed:', err);
+            }
+        }
         const len = inMemoryStore.doctors.length;
         inMemoryStore.doctors = inMemoryStore.doctors.filter(d => d.id !== id);
         return inMemoryStore.doctors.length < len;
@@ -166,10 +285,53 @@ export const doctorsStore = {
 };
 // 3. Appointments Store
 export const appointmentsStore = {
-    getAll() {
+    async getAll() {
+        if (getMongoReady()) {
+            try {
+                const appts = await Appointment.find().sort({ createdAt: -1 });
+                if (appts.length > 0) {
+                    return appts.map((a) => ({
+                        id: a._id.toString(),
+                        patientId: a.patientId,
+                        patientName: a.patientName,
+                        doctorId: a.doctorId,
+                        doctorName: a.doctorName,
+                        date: a.date,
+                        time: a.time,
+                        status: a.status,
+                        reason: a.reason
+                    }));
+                }
+            }
+            catch (err) {
+                console.warn('MongoDB appointments query failed:', err);
+            }
+        }
         return inMemoryStore.appointments;
     },
-    create(data) {
+    async create(data) {
+        if (getMongoReady()) {
+            try {
+                const appt = new Appointment(data);
+                const saved = await appt.save();
+                const record = {
+                    id: saved._id.toString(),
+                    patientId: saved.patientId,
+                    patientName: saved.patientName,
+                    doctorId: saved.doctorId,
+                    doctorName: saved.doctorName,
+                    date: saved.date,
+                    time: saved.time,
+                    status: saved.status,
+                    reason: saved.reason
+                };
+                inMemoryStore.appointments.unshift(record);
+                return record;
+            }
+            catch (err) {
+                console.warn('MongoDB appointment save failed:', err);
+            }
+        }
         const newAppt = {
             ...data,
             id: 'a_' + Date.now().toString(36)
@@ -177,7 +339,15 @@ export const appointmentsStore = {
         inMemoryStore.appointments.unshift(newAppt);
         return newAppt;
     },
-    update(id, updates) {
+    async update(id, updates) {
+        if (getMongoReady()) {
+            try {
+                await Appointment.findByIdAndUpdate(id, updates);
+            }
+            catch (err) {
+                console.warn('MongoDB appointment update failed:', err);
+            }
+        }
         const target = inMemoryStore.appointments.find(a => a.id === id);
         if (target) {
             Object.assign(target, updates, { id: target.id });
@@ -185,7 +355,15 @@ export const appointmentsStore = {
         }
         return null;
     },
-    delete(id) {
+    async delete(id) {
+        if (getMongoReady()) {
+            try {
+                await Appointment.findByIdAndDelete(id);
+            }
+            catch (err) {
+                console.warn('MongoDB appointment delete failed:', err);
+            }
+        }
         const len = inMemoryStore.appointments.length;
         inMemoryStore.appointments = inMemoryStore.appointments.filter(a => a.id !== id);
         return inMemoryStore.appointments.length < len;
@@ -193,10 +371,41 @@ export const appointmentsStore = {
 };
 // 4. Beds Store
 export const bedsStore = {
-    getAll() {
+    async getAll() {
+        if (getMongoReady()) {
+            try {
+                const beds = await Bed.find();
+                if (beds.length > 0) {
+                    return beds.map((b) => ({
+                        id: b._id.toString(),
+                        ward: b.ward,
+                        bedNumber: b.bedNumber,
+                        type: b.type,
+                        status: b.status,
+                        patientId: b.patientId,
+                        patientName: b.patientName
+                    }));
+                }
+            }
+            catch (err) {
+                console.warn('MongoDB beds query failed:', err);
+            }
+        }
         return inMemoryStore.beds;
     },
-    updateStatus(id, status, patientId, patientName) {
+    async updateStatus(id, status, patientId, patientName) {
+        if (getMongoReady()) {
+            try {
+                await Bed.findByIdAndUpdate(id, {
+                    status,
+                    patientId: status === 'Occupied' ? patientId : undefined,
+                    patientName: status === 'Occupied' ? patientName : undefined
+                });
+            }
+            catch (err) {
+                console.warn('MongoDB bed update failed:', err);
+            }
+        }
         const target = inMemoryStore.beds.find(b => b.id === id);
         if (target) {
             target.status = status;
@@ -217,7 +426,26 @@ export const bedsStore = {
 };
 // 5. Departments Store
 export const departmentsStore = {
-    getAll() {
+    async getAll() {
+        if (getMongoReady()) {
+            try {
+                const depts = await Department.find();
+                if (depts.length > 0) {
+                    return depts.map((d) => ({
+                        id: d._id.toString(),
+                        name: d.name,
+                        headDoctorId: d.headDoctorId,
+                        headDoctorName: d.headDoctorName,
+                        capacity: d.capacity,
+                        occupiedBeds: d.occupiedBeds,
+                        description: d.description
+                    }));
+                }
+            }
+            catch (err) {
+                console.warn('MongoDB departments query failed:', err);
+            }
+        }
         return inMemoryStore.departments;
     },
     create(data) {
@@ -231,13 +459,56 @@ export const departmentsStore = {
 };
 // 6. Medical Records Store
 export const medicalRecordsStore = {
-    getAll() {
+    async getAll() {
+        if (getMongoReady()) {
+            try {
+                const recs = await MedicalRecord.find().sort({ createdAt: -1 });
+                if (recs.length > 0) {
+                    return recs.map((m) => ({
+                        id: m._id.toString(),
+                        patientId: m.patientId,
+                        patientName: m.patientName,
+                        date: m.date,
+                        diagnosis: m.diagnosis,
+                        prescription: m.prescription,
+                        notes: m.notes,
+                        doctorId: m.doctorId,
+                        doctorName: m.doctorName
+                    }));
+                }
+            }
+            catch (err) {
+                console.warn('MongoDB medical records query failed:', err);
+            }
+        }
         return inMemoryStore.medicalRecords;
     },
     getByPatient(patientId) {
         return inMemoryStore.medicalRecords.filter(m => m.patientId === patientId);
     },
-    create(data) {
+    async create(data) {
+        if (getMongoReady()) {
+            try {
+                const rec = new MedicalRecord(data);
+                const saved = await rec.save();
+                const record = {
+                    id: saved._id.toString(),
+                    patientId: saved.patientId,
+                    patientName: saved.patientName,
+                    date: saved.date,
+                    diagnosis: saved.diagnosis,
+                    prescription: saved.prescription,
+                    notes: saved.notes,
+                    doctorId: saved.doctorId,
+                    doctorName: saved.doctorName
+                };
+                inMemoryStore.medicalRecords.unshift(record);
+                return record;
+            }
+            catch (err) {
+                console.warn('MongoDB record save failed:', err);
+            }
+        }
         const newRecord = {
             ...data,
             id: 'mr_' + Date.now().toString(36)

@@ -4,10 +4,12 @@ const router = Router();
 // GET /api/analytics/dashboard
 router.get('/dashboard', async (_req, res) => {
     try {
-        const patients = await patientsStore.getAll();
-        const beds = bedsStore.getAll();
-        const appointments = appointmentsStore.getAll();
-        const doctors = doctorsStore.getAll();
+        const [patients, beds, appointments, doctors] = await Promise.all([
+            patientsStore.getAll(),
+            bedsStore.getAll(),
+            appointmentsStore.getAll(),
+            doctorsStore.getAll()
+        ]);
         const admittedPatients = patients.filter(p => p.status === 'Admitted').length;
         const availableBeds = beds.filter(b => b.status === 'Available').length;
         const occupiedBeds = beds.filter(b => b.status === 'Occupied').length;

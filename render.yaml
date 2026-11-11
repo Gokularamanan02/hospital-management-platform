@@ -11,3 +11,4 @@ services:
         value: 5000
       - key: MONGO_URI
         sync: false
+
